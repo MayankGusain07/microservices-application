@@ -1,0 +1,43 @@
+######################################################
+# k8s/ingress.yaml
+# Routes external HTTP traffic to each microservice
+# Requires: kubectl apply -f https://raw.githubusercontent.com/
+#   kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/
+#   provider/aws/deploy.yaml
+######################################################
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ecommerce-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+    - http:
+        paths:
+          # http://<LOAD_BALANCER_IP>/users/...  → user-service
+          - path: /users(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 80
+          # http://<LOAD_BALANCER_IP>/products/...  → product-service
+          - path: /products(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: product-service
+                port:
+                  number: 80
+          # http://<LOAD_BALANCER_IP>/orders/...  → order-service
+          - path: /orders(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 80

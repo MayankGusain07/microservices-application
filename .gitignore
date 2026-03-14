@@ -1,0 +1,21 @@
+# Node
+node_modules/
+npm-debug.log
+
+# Terraform state (contains secrets — never commit these)
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars        # put your real variable overrides here
+
+# Environment files
+.env
+.env.local
+
+# Docker
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
