@@ -120,44 +120,15 @@ pipeline {
             kubectl set image deployment/user-service    user-service=${ECR_BASE}/user-service:${IMAGE_TAG}
             kubectl set image deployment/product-service product-service=${ECR_BASE}/product-service:${IMAGE_TAG}
             kubectl set image deployment/order-service   order-service=${ECR_BASE}/order-service:${IMAGE_TAG}
-          """
 
-          // Watch all 3 rollouts simultaneously so the 180s timeout
-          // applies to each independently instead of burning through
-          // sequentially (which caused product-service to time out).
-          script {
-            parallel(
-              'user-service': {
-                sh """
-                  export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-                  export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-                  export AWS_DEFAULT_REGION=${AWS_REGION}
-                  aws eks update-kubeconfig --name ecommerce-eks --region ${AWS_REGION}
-                  kubectl rollout status deployment/user-service --timeout=180s
-                """
-              },
-              'product-service': {
-                sh """
-                  export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-                  export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-                  export AWS_DEFAULT_REGION=${AWS_REGION}
-                  aws eks update-kubeconfig --name ecommerce-eks --region ${AWS_REGION}
-                  kubectl rollout status deployment/product-service --timeout=180s
-                """
-              },
-              'order-service': {
-                sh """
-                  export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-                  export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-                  export AWS_DEFAULT_REGION=${AWS_REGION}
-                  aws eks update-kubeconfig --name ecommerce-eks --region ${AWS_REGION}
-                  kubectl rollout status deployment/order-service --timeout=180s
-                """
-              }
-            )
-          }
+            # Roll out one at a time — Free Tier t3.micro nodes only have
+            # 2 free pod slots total, so parallel rollouts starve each other.
+            # Each gets a fresh 180s window; worst case ~3min total.
+            kubectl rollout status deployment/user-service    --timeout=180s
+            kubectl rollout status deployment/product-service --timeout=180s
+            kubectl rollout status deployment/order-service   --timeout=180s
 
-          echo "Deployment successful! Image tag: ${IMAGE_TAG}"
+            echo "Deployment successful! Image tag: ${IMAGE_TAG}"
         }
       }
     }
