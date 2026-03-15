@@ -1,33 +1,22 @@
-//////////////////////////////////////////////////////
-// Jenkinsfile — CI/CD pipeline
-// Triggered automatically when you push to GitHub
-//
-// Jenkins credentials needed (set in Jenkins UI):
-//   aws-credentials  → AWS Access Key + Secret
-//   github-token     → GitHub personal access token
-//////////////////////////////////////////////////////
-
 pipeline {
   agent any
 
   environment {
     AWS_REGION      = 'us-east-1'
-    AWS_ACCOUNT_ID  = credentials('aws-account-id')   // stored in Jenkins
+    AWS_ACCOUNT_ID  = credentials('aws-account-id')
     ECR_BASE        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/ecommerce-app"
-    IMAGE_TAG       = "${env.BUILD_NUMBER}"             // unique tag per build
+    IMAGE_TAG       = "${env.BUILD_NUMBER}"
   }
 
   stages {
 
-    // ── Stage 1: Pull the latest code ──────────────────────────────────
     stage('Checkout') {
       steps {
-        checkout scm   // Jenkins automatically checks out the GitHub repo
+        checkout scm
         echo "Building commit: ${env.GIT_COMMIT}"
       }
     }
 
-    // ── Stage 2: Run tests for each service ────────────────────────────
     stage('Test') {
       parallel {
         stage('Test user-service') {
@@ -57,11 +46,9 @@ pipeline {
       }
     }
 
-    // ── Stage 3: Build Docker images ───────────────────────────────────
     stage('Build Docker Images') {
       steps {
         script {
-          // Build all 3 images in parallel for speed
           parallel(
             'user-service': {
               sh "docker build -t ${ECR_BASE}/user-service:${IMAGE_TAG} services/user-service"
@@ -77,12 +64,11 @@ pipeline {
       }
     }
 
-    // ── Stage 4: Push images to AWS ECR ────────────────────────────────
     stage('Push to ECR') {
       steps {
         withCredentials([
-          string(credentialsId: 'aws-access-key',    variable: 'AWS_ACCESS_KEY_ID'),
-          string(credentialsId: 'aws-secret-key',    variable: 'AWS_SECRET_ACCESS_KEY')
+          string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
+          string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
         ]) {
           sh """
             export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
@@ -100,12 +86,11 @@ pipeline {
       }
     }
 
-    // ── Stage 5: Deploy to Kubernetes on AWS EKS ───────────────────────
     stage('Deploy to EKS') {
       steps {
         withCredentials([
-          string(credentialsId: 'aws-access-key',    variable: 'AWS_ACCESS_KEY_ID'),
-          string(credentialsId: 'aws-secret-key',    variable: 'AWS_SECRET_ACCESS_KEY')
+          string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
+          string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
         ]) {
           sh """
             export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
@@ -121,31 +106,25 @@ pipeline {
             kubectl set image deployment/product-service product-service=${ECR_BASE}/product-service:${IMAGE_TAG}
             kubectl set image deployment/order-service   order-service=${ECR_BASE}/order-service:${IMAGE_TAG}
 
-            # Roll out one at a time — Free Tier t3.micro nodes only have
-            # 2 free pod slots total, so parallel rollouts starve each other.
-            # Each gets a fresh 180s window; worst case ~3min total.
             kubectl rollout status deployment/user-service    --timeout=180s
             kubectl rollout status deployment/product-service --timeout=180s
             kubectl rollout status deployment/order-service   --timeout=180s
 
             echo "Deployment successful! Image tag: ${IMAGE_TAG}"
+          """
         }
       }
     }
   }
 
-  // ── Notifications ─────────────────────────────────────────────────────
   post {
     success {
-      echo "Pipeline SUCCESS — build #${env.BUILD_NUMBER} deployed"
-      // Add Slack/email notification here later
+      echo "Pipeline SUCCESS -- build #${env.BUILD_NUMBER} deployed"
     }
     failure {
-      echo "Pipeline FAILED — check console output above"
-      // Jenkins will mark the GitHub commit as failed automatically
+      echo "Pipeline FAILED -- check console output above"
     }
     always {
-      // Clean up local Docker images to save disk space
       sh "docker image prune -f"
     }
   }
