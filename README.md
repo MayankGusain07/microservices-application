@@ -297,4 +297,5 @@ This project uses paid AWS services. Estimated cost while running:
 
 **Always run `terraform destroy` when not actively learning to avoid charges.**
 t r i g g e r   t e s t  
+ f i x :   a d d   n p m   a n d   d o c k e r   t o   j e n k i n s  
  
