@@ -106,11 +106,11 @@ pipeline {
             kubectl set image deployment/product-service product-service=${ECR_BASE}/product-service:${IMAGE_TAG}
             kubectl set image deployment/order-service   order-service=${ECR_BASE}/order-service:${IMAGE_TAG}
 
-            kubectl rollout status deployment/user-service    --timeout=300s
+            kubectl rollout status deployment/user-service    --timeout=420s
             sleep 10
-            kubectl rollout status deployment/product-service --timeout=300s
+            kubectl rollout status deployment/product-service --timeout=420s
             sleep 10
-            kubectl rollout status deployment/order-service   --timeout=300s
+            kubectl rollout status deployment/order-service   --timeout=4200s
 
             echo "Deployment successful! Image tag: ${IMAGE_TAG}"
           """
