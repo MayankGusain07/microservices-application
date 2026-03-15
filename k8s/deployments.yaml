@@ -12,7 +12,7 @@ metadata:
   labels:
     app: user-service
 spec:
-  replicas: 2                  # 2 copies = high availability
+  replicas: 1                  # 2 copies = high availability
   selector:
     matchLabels:
       app: user-service
@@ -69,7 +69,7 @@ metadata:
   labels:
     app: product-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: product-service
@@ -124,7 +124,7 @@ metadata:
   labels:
     app: order-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: order-service
