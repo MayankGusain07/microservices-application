@@ -78,61 +78,55 @@ pipeline {
     }
 
     // ── Stage 4: Push images to AWS ECR ────────────────────────────────
-    stage('Push to ECR') {
+      stage('Push to ECR') {
       steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
-                          credentialsId: 'aws-credentials']]) {
-          script {
-            // Log in to ECR (token expires every 12 hours)
-            sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_BASE}"
+        withCredentials([
+          string(credentialsId: 'aws-access-key',    variable: 'AWS_ACCESS_KEY_ID'),
+          string(credentialsId: 'aws-secret-key',    variable: 'AWS_SECRET_ACCESS_KEY')
+        ]) {
+          sh """
+            export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+            export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+            export AWS_DEFAULT_REGION=${AWS_REGION}
 
-            parallel(
-              'user-service': {
-                sh "docker push ${ECR_BASE}/user-service:${IMAGE_TAG}"
-                sh "docker tag  ${ECR_BASE}/user-service:${IMAGE_TAG} ${ECR_BASE}/user-service:latest"
-                sh "docker push ${ECR_BASE}/user-service:latest"
-              },
-              'product-service': {
-                sh "docker push ${ECR_BASE}/product-service:${IMAGE_TAG}"
-                sh "docker tag  ${ECR_BASE}/product-service:${IMAGE_TAG} ${ECR_BASE}/product-service:latest"
-                sh "docker push ${ECR_BASE}/product-service:latest"
-              },
-              'order-service': {
-                sh "docker push ${ECR_BASE}/order-service:${IMAGE_TAG}"
-                sh "docker tag  ${ECR_BASE}/order-service:${IMAGE_TAG} ${ECR_BASE}/order-service:latest"
-                sh "docker push ${ECR_BASE}/order-service:latest"
-              }
-            )
-          }
+            aws ecr get-login-password --region ${AWS_REGION} | \
+              docker login --username AWS --password-stdin ${ECR_BASE}
+
+            docker push ${ECR_BASE}/user-service:${IMAGE_TAG}
+            docker push ${ECR_BASE}/product-service:${IMAGE_TAG}
+            docker push ${ECR_BASE}/order-service:${IMAGE_TAG}
+          """
         }
       }
     }
 
     // ── Stage 5: Deploy to Kubernetes on AWS EKS ───────────────────────
-    stage('Deploy to EKS') {
+      stage('Deploy to EKS') {
       steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
-                          credentialsId: 'aws-credentials']]) {
-          script {
-            // Configure kubectl to talk to your EKS cluster
-            sh "aws eks update-kubeconfig --name ecommerce-eks --region ${AWS_REGION}"
+        withCredentials([
+          string(credentialsId: 'aws-access-key',    variable: 'AWS_ACCESS_KEY_ID'),
+          string(credentialsId: 'aws-secret-key',    variable: 'AWS_SECRET_ACCESS_KEY')
+        ]) {
+          sh """
+            export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+            export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+            export AWS_DEFAULT_REGION=${AWS_REGION}
 
-            // Apply all K8s manifests
-            sh "kubectl apply -f k8s/deployments.yaml"
-            sh "kubectl apply -f k8s/ingress.yaml"
+            aws eks update-kubeconfig --name ecommerce-eks --region ${AWS_REGION}
 
-            // Update each deployment to use the new image tag
-            sh "kubectl set image deployment/user-service    user-service=${ECR_BASE}/user-service:${IMAGE_TAG}"
-            sh "kubectl set image deployment/product-service product-service=${ECR_BASE}/product-service:${IMAGE_TAG}"
-            sh "kubectl set image deployment/order-service   order-service=${ECR_BASE}/order-service:${IMAGE_TAG}"
+            kubectl apply -f k8s/deployments.yaml
+            kubectl apply -f k8s/ingress.yaml
 
-            // Wait for rollout to finish before marking build as success
-            sh "kubectl rollout status deployment/user-service    --timeout=120s"
-            sh "kubectl rollout status deployment/product-service --timeout=120s"
-            sh "kubectl rollout status deployment/order-service   --timeout=120s"
+            kubectl set image deployment/user-service    user-service=${ECR_BASE}/user-service:${IMAGE_TAG}
+            kubectl set image deployment/product-service product-service=${ECR_BASE}/product-service:${IMAGE_TAG}
+            kubectl set image deployment/order-service   order-service=${ECR_BASE}/order-service:${IMAGE_TAG}
+
+            kubectl rollout status deployment/user-service    --timeout=120s
+            kubectl rollout status deployment/product-service --timeout=120s
+            kubectl rollout status deployment/order-service   --timeout=120s
 
             echo "Deployment successful! Image tag: ${IMAGE_TAG}"
-          }
+          """
         }
       }
     }
