@@ -12,7 +12,12 @@ metadata:
   labels:
     app: user-service
 spec:
-  replicas: 1                  # 2 copies = high availability
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0        # don't create extra pod during update
+      maxUnavailable: 1  # kill old pod first, then start new one                 # 2 copies = high availability
   selector:
     matchLabels:
       app: user-service
@@ -70,6 +75,11 @@ metadata:
     app: product-service
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0        # don't create extra pod during update
+      maxUnavailable: 1  # kill old pod first, then start new one
   selector:
     matchLabels:
       app: product-service
@@ -125,6 +135,11 @@ metadata:
     app: order-service
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0        # don't create extra pod during update
+      maxUnavailable: 1  # kill old pod first, then start new one
   selector:
     matchLabels:
       app: order-service
