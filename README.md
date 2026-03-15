@@ -296,3 +296,5 @@ This project uses paid AWS services. Estimated cost while running:
 - NAT Gateway: ~$0.045/hour
 
 **Always run `terraform destroy` when not actively learning to avoid charges.**
+t r i g g e r   t e s t  
+ 
