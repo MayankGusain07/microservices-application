@@ -24,7 +24,7 @@ spec:
       containers:
         - name: user-service
           # Replace with your actual ECR URL from terraform output
-          image: YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/ecommerce-app/user-service:latest
+          image: 785703563293.dkr.ecr.us-east-1.amazonaws.com/ecommerce-app/user-service:latest
           ports:
             - containerPort: 3001
           # Kubernetes checks this to know if the pod is healthy
@@ -80,7 +80,7 @@ spec:
     spec:
       containers:
         - name: product-service
-          image: YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/ecommerce-app/product-service:latest
+          image: 785703563293.dkr.ecr.us-east-1.amazonaws.com/ecommerce-app/product-service:latest
           ports:
             - containerPort: 3002
           livenessProbe:
@@ -135,7 +135,7 @@ spec:
     spec:
       containers:
         - name: order-service
-          image: YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/ecommerce-app/order-service:latest
+          image: 785703563293.dkr.ecr.us-east-1.amazonaws.com/ecommerce-app/order-service:latest
           ports:
             - containerPort: 3003
           livenessProbe:

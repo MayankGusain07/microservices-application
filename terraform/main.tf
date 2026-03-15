@@ -58,7 +58,7 @@ module "eks" {
       max_size     = 3
       desired_size = 2
 
-      instance_types = ["t3.medium"]  # cheap enough for learning
+      instance_types = ["t3.micro"]  # cheap enough for learning
     }
   }
 
